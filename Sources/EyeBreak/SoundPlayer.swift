@@ -1,10 +1,9 @@
 import AppKit
 
-/// Играет случайную реплику из папки Sounds (пеон/крестьянин из Warcraft III, RU).
+/// Играет реплики из папки Sounds (крестьянин из Warcraft III, RU).
 final class SoundPlayer {
     private var current: NSSound?
-    private var lastPlayed: URL?
-    private let files: [URL]
+    private let dir: URL?
 
     init() {
         let fm = FileManager.default
@@ -15,29 +14,26 @@ final class SoundPlayer {
         }
         // 2) Для swift run из репозитория
         let exe = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
-        var dir = exe.deletingLastPathComponent()
+        var d = exe.deletingLastPathComponent()
         for _ in 0..<5 {
-            candidates.append(dir.appendingPathComponent("Sounds"))
-            dir = dir.deletingLastPathComponent()
+            candidates.append(d.appendingPathComponent("Sounds"))
+            d = d.deletingLastPathComponent()
         }
-
-        var found: [URL] = []
-        for dirURL in candidates {
-            if let items = try? fm.contentsOfDirectory(at: dirURL, includingPropertiesForKeys: nil) {
-                found = items.filter { ["wav", "mp3", "aiff", "ogg"].contains($0.pathExtension.lowercased()) }
-                if !found.isEmpty { break }
-            }
-        }
-        files = found
+        dir = candidates.first { fm.fileExists(atPath: $0.appendingPathComponent("rabota-ne-volk.wav").path) }
     }
 
-    func playRandom() {
-        guard !files.isEmpty else { NSSound.beep(); return }
-        var pick = files.randomElement()!
-        if files.count > 1, pick == lastPlayed { pick = files.first { $0 != pick }! }
-        lastPlayed = pick
+    func play(_ name: String) {
+        guard let url = dir?.appendingPathComponent(name), FileManager.default.fileExists(atPath: url.path) else {
+            NSSound.beep()
+            return
+        }
         current?.stop()
-        current = NSSound(contentsOf: pick, byReference: true)
+        current = NSSound(contentsOf: url, byReference: true)
         current?.play()
     }
+
+    /// Начало перерыва: «Работа не волк, в лес не убежит»
+    func playBreakStart() { play("rabota-ne-volk.wav") }
+    /// Конец перерыва: «Опять работа!?»
+    func playBreakEnd() { play("opyat-rabota.wav") }
 }

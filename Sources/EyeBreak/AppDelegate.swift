@@ -3,7 +3,8 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // Настройки
     private let workInterval: TimeInterval = 20 * 60   // 20 минут
-    private let breakDuration: TimeInterval = 20       // 20 секунд
+    private let breakFull: TimeInterval = 30           // 30 секунд на автомате
+    private let breakShort: TimeInterval = 20          // 20 секунд, если нажал клавишу
 
     private var statusItem: NSStatusItem!
     private var tickTimer: Timer?
@@ -94,9 +95,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startBreak() {
         statusItem.button?.title = "👁 👀"
-        if soundEnabled { sound.playRandom() }
-        breakController.show(duration: breakDuration) { [weak self] in
-            self?.scheduleNextBreak()
+        if soundEnabled { sound.playBreakStart() }
+        breakController.show(fullDuration: breakFull, shortDuration: breakShort) { [weak self] in
+            guard let self else { return }
+            if self.soundEnabled { self.sound.playBreakEnd() }
+            self.scheduleNextBreak()
         }
     }
 
@@ -128,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func testSound() {
-        sound.playRandom()
+        sound.playBreakStart()
     }
 
     @objc private func didWake() {
