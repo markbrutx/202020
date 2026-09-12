@@ -10,6 +10,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var nextBreakAt: Date = .distantFuture
     private var pausedUntil: Date?
     private let breakController = BreakController()
+    private let sound = SoundPlayer()
+    private var soundEnabled: Bool {
+        get { !UserDefaults.standard.bool(forKey: "soundMuted") }
+        set { UserDefaults.standard.set(!newValue, forKey: "soundMuted") }
+    }
+    private var soundMenuItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
@@ -41,6 +47,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "Пауза на 1 час", action: #selector(pauseHour), keyEquivalent: "")
         menu.addItem(withTitle: "Возобновить", action: #selector(resume), keyEquivalent: "")
+        menu.addItem(.separator())
+        soundMenuItem = menu.addItem(withTitle: "Звук", action: #selector(toggleSound), keyEquivalent: "")
+        soundMenuItem.state = soundEnabled ? .on : .off
+        menu.addItem(withTitle: "Проверить звук", action: #selector(testSound), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Выход", action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = self }
@@ -84,6 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startBreak() {
         statusItem.button?.title = "👁 👀"
+        if soundEnabled { sound.playRandom() }
         breakController.show(duration: breakDuration) { [weak self] in
             self?.scheduleNextBreak()
         }
@@ -109,6 +120,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func resume() {
         pausedUntil = nil
         scheduleNextBreak()
+    }
+
+    @objc private func toggleSound() {
+        soundEnabled.toggle()
+        soundMenuItem.state = soundEnabled ? .on : .off
+    }
+
+    @objc private func testSound() {
+        sound.playRandom()
     }
 
     @objc private func didWake() {
